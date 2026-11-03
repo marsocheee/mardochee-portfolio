@@ -2,6 +2,7 @@
 // Exemple de structure : { title: "...", description: "...", technologies: ["..."], github: "...", demo: "..." }
 const projects = [];
 
+
 // TODO: Ajouter compétences, langues, objectif, URL LinkedIn,
 // numéro WhatsApp international et chemin du CV quand ils seront fournis.
 const profileContent = {
@@ -12,6 +13,7 @@ const profileContent = {
   whatsappNumber: "",
   cvUrl: ""
 };
+
 
 const projectGrid = document.getElementById("projectGrid");
 const safeWebUrl = (value) => {
@@ -24,6 +26,7 @@ const safeWebUrl = (value) => {
   }
 };
 
+
 function addProjectLink(container, label, url, accessibleLabel) {
   const safeUrl = safeWebUrl(url);
   if (!safeUrl) return;
@@ -34,114 +37,76 @@ function addProjectLink(container, label, url, accessibleLabel) {
   link.rel = "noopener noreferrer";
   link.setAttribute("aria-label", accessibleLabel);
   link.textContent = label;
-  container.append(link);
-}
 
-function renderProjects() {
-  if (!projectGrid || projects.length === 0) return;
-  projectGrid.replaceChildren();
-  projects.forEach((project) => {
-    const card = document.createElement("article");
-    card.className = "project-card";
-    const heading = document.createElement("h3");
-    heading.textContent = project.title || "Projet";
-    card.append(heading);
-    const description = document.createElement("p");
-    description.className = "project-description";
-    description.textContent = project.description || "";
-    card.append(description);
+(function () {
+  const THEME_KEY = 'portfolio-theme';
 
-    if (Array.isArray(project.technologies) && project.technologies.length) {
-      const technologies = document.createElement("ul");
-      technologies.className = "tag-list project-tags";
-      project.technologies.forEach((technology) => {
-        const tag = document.createElement("li");
-        tag.textContent = technology;
-        technologies.append(tag);
-      });
-      card.append(technologies);
+  function getStoredTheme() {
+    try {
+      const storedTheme = localStorage.getItem(THEME_KEY);
+      if (storedTheme === 'dark' || storedTheme === 'light') return storedTheme;
+    } catch (error) {
+      console.warn('Theme storage unavailable:', error);
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    const normalizedTheme = theme === 'dark' ? 'dark' : 'light';
+    document.body.dataset.theme = normalizedTheme;
+    document.documentElement.dataset.theme = normalizedTheme;
+
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', normalizedTheme === 'dark' ? '#0d1522' : '#f6f7fb');
     }
 
-    const links = document.createElement("div");
-    links.className = "project-links";
-    addProjectLink(links, "Code GitHub", project.github, "Voir le code de " + (project.title || "ce projet") + " sur GitHub");
-    addProjectLink(links, "Démo", project.demo, "Voir la démonstration de " + (project.title || "ce projet"));
-    if (links.childElementCount) card.append(links);
-    projectGrid.append(card);
-  });
-}
+    const toggle = document.querySelector('.theme-toggle');
+    if (!toggle) return;
 
-function fillTags(listId, values) {
-  const list = document.getElementById(listId);
-  if (!list || !Array.isArray(values) || values.length === 0) return false;
-  values.filter(Boolean).forEach((value) => {
-    const tag = document.createElement("li");
-    tag.textContent = value;
-    list.append(tag);
-  });
-  return list.childElementCount > 0;
-}
-
-function renderProfileDetails() {
-  const skillsVisible = fillTags("skillTags", profileContent.skills);
-  const languagesVisible = fillTags("languageTags", profileContent.languages);
-  const objective = document.getElementById("objectiveText");
-  if (objective && profileContent.objective.trim()) objective.textContent = profileContent.objective;
-  const blocks = [
-    ["skillsBlock", skillsVisible],
-    ["languagesBlock", languagesVisible],
-    ["objectiveBlock", Boolean(profileContent.objective.trim())]
-  ];
-  blocks.forEach(([id, visible]) => {
-    const block = document.getElementById(id);
-    if (block) block.hidden = !visible;
-  });
-  const details = document.getElementById("aboutDetails");
-  if (details) details.hidden = !blocks.some(([, visible]) => visible);
-}
-
-function renderContactExtras() {
-  const extras = document.getElementById("contactExtras");
-  if (!extras) return;
-  const digits = profileContent.whatsappNumber.replace(/\D/g, "");
-  if (digits) {
-    const whatsapp = document.createElement("a");
-    whatsapp.className = "button button-outline";
-    whatsapp.href = "https://wa.me/" + digits;
-    whatsapp.target = "_blank";
-    whatsapp.rel = "noopener noreferrer";
-    whatsapp.setAttribute("aria-label", "Contacter Mardochée Matete sur WhatsApp");
-    whatsapp.textContent = "WhatsApp";
-    extras.append(whatsapp);
+    const isDark = normalizedTheme === 'dark';
+    toggle.setAttribute('aria-label', isDark ? 'Activer le mode clair' : 'Activer le mode sombre');
+    toggle.setAttribute('aria-pressed', String(isDark));
+    const icon = toggle.querySelector('.theme-toggle__icon');
+    const label = toggle.querySelector('.theme-toggle__label');
+    if (icon) icon.textContent = isDark ? '☀' : '☾';
+    if (label) label.textContent = isDark ? 'Clair' : 'Sombre';
   }
-  const cvUrl = safeWebUrl(profileContent.cvUrl);
-  if (cvUrl) {
-    const cv = document.createElement("a");
-    cv.className = "button button-outline";
-    cv.href = cvUrl;
-    cv.setAttribute("aria-label", "Télécharger le CV de Mardochée Matete");
-    cv.setAttribute("download", "CV_Mardochee_Matete.pdf");
-    cv.textContent = "Télécharger mon CV";
-    extras.append(cv);
+
+  function createThemeToggle() {
+    const topbar = document.querySelector('.topbar');
+    if (!topbar) return;
+    if (topbar.querySelector('.theme-toggle')) return;
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'theme-toggle';
+    toggle.setAttribute('aria-label', 'Activer le mode sombre');
+    toggle.setAttribute('aria-pressed', 'false');
+    toggle.innerHTML = '<span class="theme-toggle__icon" aria-hidden="true">☾</span><span class="theme-toggle__label">Sombre</span>';
+
+    toggle.addEventListener('click', () => {
+      const nextTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem(THEME_KEY, nextTheme);
+      } catch (error) {
+        console.warn('Unable to save theme:', error);
+      }
+      applyTheme(nextTheme);
+    });
+
+    topbar.appendChild(toggle);
   }
-}
 
-function renderLinkedIn() {
-  const safeUrl = safeWebUrl(profileContent.linkedinUrl);
-  const placeholder = document.getElementById("linkedinCard");
-  if (!safeUrl || !placeholder) return;
-  const link = document.createElement("a");
-  link.className = "social-card";
-  link.href = safeUrl;
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  link.setAttribute("aria-label", "LinkedIn — profil de Mardochée Matete");
-  link.innerHTML = placeholder.innerHTML;
-  link.querySelector("small").textContent = "Profil de Mardochée";
-  placeholder.replaceWith(link);
-}
+  function initializeTheme() {
+    createThemeToggle();
+    const savedTheme = getStoredTheme();
+    applyTheme(savedTheme);
+  }
 
-renderProjects();
-renderProfileDetails();
-renderContactExtras();
-renderLinkedIn();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeTheme, { once: true });
+  } else {
+    initializeTheme();
+  }
+})();
